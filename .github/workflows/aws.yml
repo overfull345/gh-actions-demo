@@ -60,7 +60,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build Docker image
-        run: make build-image
+        run: docker build -t ${{ github.event.repository.name }}:${TAG} .
 
       - name: Tag & push image
         run: |
@@ -68,5 +68,5 @@ jobs:
           # IMAGE_URI="$ACCOUNT_ID.dkr.ecr.${AWS_REGION}.amazonaws.com/${{ github.event.repository.name }}:${TAG}"
           IMAGE_URI="$ACCOUNT_ID.dkr.ecr.${AWS_REGION}.amazonaws.com/sanne-odoo-web:${TAG}"
 
-          docker tag ${IMAGE_URI} ${IMAGE_URI}
+          docker tag ${{ github.event.repository.name }}:${TAG} ${IMAGE_URI}
           docker push ${IMAGE_URI}
