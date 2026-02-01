@@ -1,5 +1,6 @@
-import time
+import time, logging
+logging.basicConfig(level=logging.INFO)
 i=1
 while True:
   time.sleep(1)
-  print(f"revision: {i}")
+  logging.info("revision: %d", i)
