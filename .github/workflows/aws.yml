@@ -64,7 +64,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build Docker image
-        run: docker build -t ${{ github.event.repository.name }}:${{ steps.set-image-tag.outputs.image_tag }}" .
+        run: docker build -t ${{ github.event.repository.name }}:${{ steps.set-image-tag.outputs.image_tag }} .
 
       - name: Tag & push image
         run: |
