@@ -22,7 +22,7 @@ jobs:
   #     - run: make lint-pylint
 
   build:
-    name: Build & Push Docker Image
+    name: Build & Push Docker Image to ECR
     runs-on: ubuntu-latest
     environment: prod
     # needs: lint
@@ -86,15 +86,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # - name: Configure AWS credentials
-      #   uses: aws-actions/configure-aws-credentials@v1
-      #   with:
-      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     aws-region: ${{ vars.AWS_REGION }}
-
-      # - name: Login to ECR
-      #   uses: aws-actions/amazon-ecr-login@v1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
