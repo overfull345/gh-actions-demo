@@ -1,4 +1,4 @@
-name: Odoo CI/CD
+name: build+push to prod
 
 on:
   workflow_dispatch:
@@ -64,17 +64,17 @@ jobs:
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build Docker image
-        run: docker build -t ${{ github.event.repository.name }}:${{ steps.set-image-tag.outputs.image_tag }} .
-
-      - name: Tag & push image
+      - name: Build & push docker image
         run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           IMAGE_TAG=${{ steps.set-image-tag.outputs.image_tag }}
-          # IMAGE_URI="$ACCOUNT_ID.dkr.ecr.${AWS_REGION}.amazonaws.com/${{ github.event.repository.name }}:${TAG}"
+          LOCAL_BUILD_TAG=${{ github.event.repository.name }}:${IMAGE_TAG}
+          echo "Building docker image ${LOCAL_BUILD_TAG}"
+          docker build -t ${LOCAL_BUILD_TAG} .
+          
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           IMAGE_URI="$ACCOUNT_ID.dkr.ecr.${AWS_REGION}.amazonaws.com/sanne-odoo-web:${IMAGE_TAG}"
-
-          docker tag ${{ github.event.repository.name }}:${IMAGE_TAG} ${IMAGE_URI}
+          docker tag ${LOCAL_BUILD_TAG} ${IMAGE_URI}
+          echo "Pushing docker image to ${IMAGE_URI}"
           docker push ${IMAGE_URI}
 
   deploy:
@@ -104,7 +104,7 @@ jobs:
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: Deploy ECS service
+      - name: Update ECS service
         env:
           ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
           ECS_SERVICE: ${{ vars.ECS_SERVICE }}
@@ -113,7 +113,6 @@ jobs:
           ODOO_UPDATE_MODULES: ${{ vars.ODOO_UPDATE_MODULES }}
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          # IMAGE="$ACCOUNT_ID.dkr.ecr.${AWS_REGION}.amazonaws.com/${{ github.event.repository.name }}:${TAG}"
           IMAGE="$ACCOUNT_ID.dkr.ecr.${AWS_REGION}.amazonaws.com/sanne-odoo-web:${{ needs.build.outputs.image_tag }}"
           echo "Deploying image: $IMAGE"
 
