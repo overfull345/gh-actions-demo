@@ -1,6 +1,6 @@
 import time, logging
 logging.basicConfig(level=logging.INFO)
-i=1
+build=2
 while True:
   time.sleep(1)
-  logging.info("revision: %d", i)
+  logging.info(f"build:{build} running...")
