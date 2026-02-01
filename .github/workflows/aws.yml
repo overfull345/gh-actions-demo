@@ -106,7 +106,7 @@ jobs:
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           # IMAGE="$ACCOUNT_ID.dkr.ecr.${AWS_REGION}.amazonaws.com/${{ github.event.repository.name }}:${TAG}"
-          IMAGE_URI="$ACCOUNT_ID.dkr.ecr.${AWS_REGION}.amazonaws.com/sanne-odoo-web:${TAG}"
+          IMAGE="$ACCOUNT_ID.dkr.ecr.${AWS_REGION}.amazonaws.com/sanne-odoo-web:${TAG}"
 
           TASK=$(aws ecs describe-task-definition \
             --task-definition "$TASK_FAMILY" \
