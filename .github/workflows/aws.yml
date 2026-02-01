@@ -8,6 +8,9 @@ on:
     tags:
       - 'v*.*.*'
 
+# env:
+#   TAG: ${CI_COMMIT_BRANCH}_${CI_COMMIT_SHORT_SHA}
+
 # ---------------------------
 # LINT
 # ---------------------------
@@ -25,6 +28,8 @@ jobs:
     name: Build & Push Docker Image to ECR
     runs-on: ubuntu-latest
     environment: prod
+    outputs:
+      image_tag: ${{ steps.set-image-tag.outputs.image_tag }}
     # needs: lint
 
     # strategy:
@@ -39,12 +44,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set image tag
+        id: set-image-tag
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+            IMAGE_TAG=${GITHUB_REF#refs/tags/}
           else
-            echo "TAG=${GITHUB_REF_NAME}_${GITHUB_SHA::8}" >> $GITHUB_ENV
+            IMAGE_TAG=${GITHUB_REF_NAME}_${GITHUB_SHA::8}
           fi
+          echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -57,17 +64,17 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build Docker image
-        run: docker build -t ${{ github.event.repository.name }}:${TAG} .
+        run: docker build -t ${{ github.event.repository.name }}:${{ steps.set-image-tag.outputs.image_tag }}" .
 
       - name: Tag & push image
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          IMAGE_TAG=${{ steps.set-image-tag.outputs.image_tag }}
           # IMAGE_URI="$ACCOUNT_ID.dkr.ecr.${AWS_REGION}.amazonaws.com/${{ github.event.repository.name }}:${TAG}"
-          IMAGE_URI="$ACCOUNT_ID.dkr.ecr.${AWS_REGION}.amazonaws.com/sanne-odoo-web:${TAG}"
+          IMAGE_URI="$ACCOUNT_ID.dkr.ecr.${AWS_REGION}.amazonaws.com/sanne-odoo-web:${IMAGE_TAG}"
 
-          docker tag ${{ github.event.repository.name }}:${TAG} ${IMAGE_URI}
+          docker tag ${{ github.event.repository.name }}:${IMAGE_TAG} ${IMAGE_URI}
           docker push ${IMAGE_URI}
-
 
   deploy:
     name: Deploy to ECS
@@ -106,7 +113,8 @@ jobs:
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           # IMAGE="$ACCOUNT_ID.dkr.ecr.${AWS_REGION}.amazonaws.com/${{ github.event.repository.name }}:${TAG}"
-          IMAGE="$ACCOUNT_ID.dkr.ecr.${AWS_REGION}.amazonaws.com/sanne-odoo-web:${TAG}"
+          IMAGE="$ACCOUNT_ID.dkr.ecr.${AWS_REGION}.amazonaws.com/sanne-odoo-web:${{ needs.build.outputs.image_tag }}"
+          echo "Deploying image: $IMAGE"
 
           TASK=$(aws ecs describe-task-definition \
             --task-definition "$TASK_FAMILY" \
